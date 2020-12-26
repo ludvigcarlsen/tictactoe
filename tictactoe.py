@@ -36,9 +36,6 @@ class Square():
     def addButton(self, button):
         self.button = button
 
-    def getButton(self):
-        return self.button
-
     def updateStatus(self, status):
         self.status = status
 
@@ -55,6 +52,7 @@ class Square():
         return self.col
 
 
+
 class Main(tk.Frame):
 
     def __init__(self, parent):
@@ -64,8 +62,7 @@ class Main(tk.Frame):
 
         # Players
         self.players = [Player(1, "Human"), Player(2, "AI")]
-        self.currentPlayer = self.players[0]
-        #self.currentPlayer = self.players[random.randint(0, len(self.players)-1)]
+        self.currentPlayer = self.players[random.randint(0, len(self.players)-1)]
         self.winner = None
 
         # Placeholder board for squares
@@ -110,7 +107,7 @@ class Main(tk.Frame):
                 self.s = Square(row, col)
 
                 button = tk.Button(root, borderwidth=0, highlightthickness=0,
-                    command=partial(self.humanMove, row, col))
+                         command=partial(self.humanMove, row, col))
                 button.grid(row=row, column=col)
 
                 self.s.addButton(button)
@@ -119,11 +116,11 @@ class Main(tk.Frame):
                 self.availSquares.append(self.s)
                 self.board[row][col] = self.s
 
-
+        # If AI begins
         if self.turn == 1 and self.currentPlayer.type == "AI":
             self.aiMove()
 
-
+    # Finds best available move
     def minimax(self, board, turn, isMax, depth):
         result = self.checkSimWin(board, turn)
 
@@ -132,45 +129,41 @@ class Main(tk.Frame):
 
         if (isMax):
             bestScore = float("-inf")
-            for i in range(3):
-                for j in range(3):
-                    if board[i][j] == 0:
-                        board[i][j] = "AI"
+            for row in range(3):
+                for col in range(3):
+
+                    if board[row][col] == 0:
+                        board[row][col] = "AI"
                         score = self.minimax(board, turn+1, False, depth+1)
-                        board[i][j] = 0
+                        board[row][col] = 0
 
                         if score > bestScore:
                             bestScore = score
-
             return bestScore
-
 
         else:
             bestScore = float("inf")
-            for i in range(3):
-                for j in range(3):
-                    if board[i][j] == 0:
-                        board[i][j] = "Human"
+            for row in range(3):
+                for col in range(3):
+                    if board[row][col] == 0:
+                        board[row][col] = "Human"
                         score = self.minimax(board, turn+1, True, depth+1)
-                        board[i][j] = 0
+                        board[row][col] = 0
 
                         if score < bestScore:
                             bestScore = score
-
             return bestScore
 
-
+    # Returns winner, tie else None
     def checkWin(self):
         for i in range(len(self.win_cons)):
             if self.checkSequence(self.win_cons[i]):
                 self.winner = self.currentPlayer
                 print(f"Winner: {self.winner.getType()}")
-                #self.players[winSquare.getStatus()-1].getType()
+                return
 
         if self.turn == 9:
             print("Tie")
-        return None
-
 
     # Winning sequence as input, eg. top row
     def checkSequence(self, seq):
@@ -178,9 +171,11 @@ class Main(tk.Frame):
         s2 = self.board[seq[2]][seq[3]]
         s3 = self.board[seq[4]][seq[5]]
 
-        return (s1.getStatus() == s2.getStatus() and
-                s2.getStatus() == s3.getStatus() and
-                s3.getStatus() == self.currentPlayer.id)
+        if (s1.getStatus() == s2.getStatus() and
+            s2.getStatus() == s3.getStatus() and
+            s3.getStatus() == self.currentPlayer.id):
+
+            return True
 
 
     def checkSimWin(self, board, turn):
@@ -205,34 +200,37 @@ class Main(tk.Frame):
 
     def aiMove(self):
         if self.turn < 10 and self.winner == None:
-
             bestScore = float("-inf")
-            bestSquare = None
-            duplicate = self.simBoard.copy()
+            bestSquares = list()
+            tempBoard = self.simBoard.copy()
 
             for i in range(len(self.availSquares)):
                 tempSquare = self.availSquares[i]
                 row = tempSquare.getRow()
                 col = tempSquare.getColumn()
-                duplicate[row][col] = self.currentPlayer.getType()
+                tempBoard[row][col] = self.currentPlayer.getType()
 
-                score = self.minimax(duplicate, self.turn*1, False, 0)
-                duplicate[row][col] = 0
+                score = self.minimax(tempBoard, self.turn*1, False, 0)
+                tempBoard[row][col] = 0
 
-                if score > bestScore:
+                if score > bestScore: # Replaces all with a better square
                     bestScore = score
-                    bestSquare = tempSquare
+                    bestSquares.clear()
+                    bestSquares.append(tempSquare)
 
+                elif score == bestScore: # Appends equally good squares
+                    bestSquares.append(tempSquare)
 
-            bestSquare.updateStatus(self.currentPlayer.id)
-            bestSquare.updateImage(self.currentPlayer.id)
-            self.simBoard[bestSquare.getRow()][bestSquare.getColumn()] = self.currentPlayer.getType()
-            self.availSquares.remove(bestSquare)
+            square = bestSquares[random.randint(0, len(bestSquares)-1)]
+            square.updateStatus(self.currentPlayer.id)
+            square.updateImage(self.currentPlayer.id)
+
+            self.simBoard[square.getRow()][square.getColumn()] = self.currentPlayer.getType()
+            self.availSquares.remove(square)
             self.checkWin()
 
             self.turn += 1
             self.currentPlayer = self.players[self.currentPlayer.id % 2]
-
 
 
     def humanMove(self, row, col):
@@ -247,10 +245,8 @@ class Main(tk.Frame):
             self.turn += 1
             self.currentPlayer = self.players[self.currentPlayer.id % 2]
 
-            self.aiMove()
 
-
-
+        self.aiMove()
 
 
 
